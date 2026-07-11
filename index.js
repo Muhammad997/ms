@@ -16,6 +16,7 @@ const { initDB } = require('./src/database/sqlite');
 const { handleMessage } = require('./src/handlers/message');
 
 let pairingRequested = false;
+let reconnecting = false;
 
 async function startBot() {
     try {
@@ -35,7 +36,8 @@ async function startBot() {
             logger: pino({ level: 'silent' }),
             browser: ['KocakAi', 'Chrome', '1.0.0'],
             markOnlineOnConnect: false,
-            printQRInTerminal: false
+            printQRInTerminal: false,
+            syncFullHistory: false
         });
 
         sock.ev.on('creds.update', saveCreds);
@@ -46,55 +48,61 @@ async function startBot() {
                 lastDisconnect
             } = update;
 
-            if (connection === 'connecting') {
-                console.log('🔄 Connecting to WhatsApp...');
-            }
+            console.log('📡 Status:', connection);
 
             if (
+                connection === 'connecting' &&
                 !state.creds.registered &&
                 !pairingRequested
             ) {
                 pairingRequested = true;
 
-                try {
-                    const phoneNumber =
-                        process.env.PHONE_NUMBER;
+                const phoneNumber =
+                    process.env.PHONE_NUMBER;
 
-                    if (!phoneNumber) {
-                        console.log(
-                            '❌ PHONE_NUMBER belum diisi'
-                        );
-                        return;
-                    }
-
-                    setTimeout(async () => {
-                        try {
-                            const code =
-                                await sock.requestPairingCode(
-                                    phoneNumber
-                                );
-
-                            console.log('\n📱 Pairing Code');
-                            console.log(
-                                '===================='
-                            );
-                            console.log(code);
-                            console.log(
-                                '====================\n'
-                            );
-                        } catch (err) {
-                            console.error(
-                                '❌ Pairing Error:',
-                                err.message
-                            );
-                        }
-                    }, 5000);
-                } catch (err) {
-                    console.error(err);
+                if (!phoneNumber) {
+                    console.log(
+                        '❌ PHONE_NUMBER belum diisi'
+                    );
+                    return;
                 }
+
+                console.log(
+                    '📱 Nomor:',
+                    phoneNumber
+                );
+
+                setTimeout(async () => {
+                    try {
+                        const code =
+                            await sock.requestPairingCode(
+                                phoneNumber
+                            );
+
+                        console.log('');
+                        console.log(
+                            '📱 PAIRING CODE'
+                        );
+                        console.log(
+                            '===================='
+                        );
+                        console.log(code);
+                        console.log(
+                            '===================='
+                        );
+                        console.log('');
+                    } catch (err) {
+                        console.error(
+                            '❌ Pairing Error:',
+                            err.message
+                        );
+                    }
+                }, 3000);
             }
 
             if (connection === 'open') {
+                reconnecting = false;
+
                 console.log(
                     '✅ WhatsApp Connected'
                 );
@@ -115,10 +123,13 @@ async function startBot() {
 
                 if (
                     statusCode !==
-                    DisconnectReason.loggedOut
+                        DisconnectReason.loggedOut &&
+                    !reconnecting
                 ) {
+                    reconnecting = true;
+
                     console.log(
-                        '🔄 Reconnecting...'
+                        '🔄 Reconnecting in 5 seconds...'
                     );
 
                     setTimeout(() => {
@@ -137,10 +148,15 @@ async function startBot() {
             'messages.upsert',
             async ({ messages }) => {
                 try {
-                    const msg = messages[0];
+                    const msg = messages?.[0];
 
                     if (!msg) return;
                     if (msg.key.fromMe) return;
+                    if (
+                        msg.key.remoteJid ===
+                        'status@broadcast'
+                    )
+                        return;
 
                     await handleMessage(
                         sock,
@@ -159,6 +175,10 @@ async function startBot() {
             '❌ Startup Error:',
             err
         );
+
+        setTimeout(() => {
+            startBot();
+        }, 5000);
     }
 }
 
