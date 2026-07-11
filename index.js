@@ -48,7 +48,7 @@ async function startBot() {
                 lastDisconnect
             } = update;
 
-            console.log('📡 Status:', connection);
+            console.log('⏰ Pairing dibuat:', new Date().toLocaleString());
 
             if (
                 connection === 'connecting' &&
