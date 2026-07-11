@@ -7,9 +7,9 @@ async function start() {
   console.log('🚀 KocakAi v9 starting...');
 
   db.run(
-    'INSERT INTO memory(user, message) VALUES(?, ?)',
-    ['system', 'Bot started']
-  );
+  'INSERT INTO memory(user, message) VALUES(?, ?)',
+  ['system', 'Bot started']
+);
 
   try {
     const reply = await askAI('Perkenalkan dirimu sebagai KocakAi');
