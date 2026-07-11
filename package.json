@@ -1,10 +1,25 @@
 {
   "name": "kocakai-v9",
   "version": "9.0.0",
+  "description": "KocakAi WhatsApp Bot - Gemini 2.5 Flash - Created by Muhammad Sulaiman",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "baileys",
+    "gemini",
+    "ai",
+    "kocakai"
+  ],
+  "author": "Muhammad Sulaiman",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
