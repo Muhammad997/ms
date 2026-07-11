@@ -6,19 +6,9 @@ const { askAI } = require('./ai');
 async function start() {
   console.log('🚀 KocakAi v9 starting...');
 
-  db.serialize(() => {
-    db.run(
-      'INSERT INTO memory(user, message) VALUES(?, ?)',
-      ['system', 'Bot started'],
-      (err) => {
-        if (err) {
-          console.error('DB Insert Error:', err.message);
-        } else {
-          console.log('✅ Startup message saved');
-        }
-      }
-    );
-  });
+  db.serialize(() => 
+    
+  {
 
   try {
     const reply = await askAI(
