@@ -16,7 +16,7 @@ async function startBot() {
 try {
 console.log('🚀 KocakAi v9 starting...');
 
-```
+
 const { state, saveCreds } = await useMultiFileAuthState('./auth');
 
 const sock = makeWASocket({
@@ -90,7 +90,7 @@ sock.ev.on('messages.upsert', async ({ messages }) => {
     console.log('📩', jid, ':', text);
 
     const prompt = `
-```
+
 
 Kamu adalah KocakAi 🤪.
 
@@ -109,7 +109,7 @@ Pesan pengguna:
 ${text}
 `;
 
-```
+
     const reply = await askAI(prompt);
 
     await sock.sendMessage(jid, {
@@ -121,7 +121,7 @@ ${text}
     console.error('Message Error:', err);
   }
 });
-```
+
 
 } catch (err) {
 console.error('Startup Error:', err);
