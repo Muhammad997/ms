@@ -3,56 +3,54 @@ require('dotenv').config();
 const { webcrypto } = require('crypto');
 global.crypto = webcrypto;
 
+const baileys = require('@whiskeysockets/baileys');
+const makeWASocket = baileys.default;
 const {
-default: makeWASocket,
 useMultiFileAuthState,
 DisconnectReason
-} = require('@whiskeysockets/baileys');
+} = baileys;
 
-const pino = require('pino');
+const P = require('pino');
 const { askAI } = require('./ai');
 
 async function startBot() {
 try {
 console.log('🚀 KocakAi v9 starting...');
 
-
-const { state, saveCreds } = await useMultiFileAuthState('./auth');
+const { state, saveCreds } =
+  await useMultiFileAuthState('./auth');
 
 const sock = makeWASocket({
   auth: state,
-  printQRInTerminal: false,
-  logger: pino({ level: 'silent' }),
+  logger: P(),
   browser: ['KocakAi', 'Chrome', '1.0']
 });
 
 sock.ev.on('creds.update', saveCreds);
 
-// Pairing Code
 if (!state.creds.registered) {
   const phone = process.env.PHONE_NUMBER;
 
   if (!phone) {
-    console.log('❌ PHONE_NUMBER belum diisi pada .env');
-    process.exit(1);
+    throw new Error('PHONE_NUMBER belum diisi');
   }
 
   setTimeout(async () => {
     try {
-      console.log('📱 Request Pairing Code untuk:', phone);
-
       const code = await sock.requestPairingCode(phone);
 
       console.log('\n========================');
-      console.log('PAIRING CODE :', code);
+      console.log('PAIRING CODE:', code);
       console.log('========================\n');
     } catch (err) {
-      console.error('❌ Pairing Error:', err);
+      console.error('Pairing Error:', err);
     }
   }, 5000);
 }
 
-sock.ev.on('connection.update', ({ connection, lastDisconnect }) => {
+sock.ev.on('connection.update', (update) => {
+  const { connection, lastDisconnect } = update;
+
   if (connection === 'open') {
     console.log('✅ WhatsApp Connected');
   }
@@ -62,7 +60,7 @@ sock.ev.on('connection.update', ({ connection, lastDisconnect }) => {
       lastDisconnect?.error?.output?.statusCode !==
       DisconnectReason.loggedOut;
 
-    console.log('⚠️ Connection Closed');
+    console.log('❌ Connection Closed');
 
     if (shouldReconnect) {
       console.log('🔄 Reconnecting...');
@@ -78,50 +76,43 @@ sock.ev.on('messages.upsert', async ({ messages }) => {
     if (!msg?.message) return;
     if (msg.key.fromMe) return;
 
-    const jid = msg.key.remoteJid;
-
     const text =
-      msg.message.conversation ||
-      msg.message.extendedTextMessage?.text ||
+      msg.message?.conversation ||
+      msg.message?.extendedTextMessage?.text ||
       '';
 
     if (!text) return;
 
-    console.log('📩', jid, ':', text);
-
     const prompt = `
-
 
 Kamu adalah KocakAi 🤪.
 
 Karakter:
 
-* Lucu
-* Santai
-* Banyak jokes random
-* Tetap membantu
-* Bahasa Indonesia
+Lucu
+Santai
+Banyak jokes random
+Bahasa Indonesia
 
 Selalu akhiri jawaban dengan:
 Created by Muhammad Sulaiman
 
-Pesan pengguna:
+Pesan:
 ${text}
 `;
 
-
     const reply = await askAI(prompt);
 
-    await sock.sendMessage(jid, {
-      text: reply
-    });
+    await sock.sendMessage(
+      msg.key.remoteJid,
+      { text: reply }
+    );
 
     console.log('✅ Reply sent');
   } catch (err) {
     console.error('Message Error:', err);
   }
 });
-
 
 } catch (err) {
 console.error('Startup Error:', err);
